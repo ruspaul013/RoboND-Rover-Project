@@ -79,7 +79,8 @@ class RoverState():
         self.send_pickup = False # Set to True to trigger rock pickup
         #------------------added code------------------
         self.stuck_time = 0 # frame counter when the robot stuck
-        self.limit = 90 #a default frame number for the robot when stuck ot go backward
+        self.stuck_limit = 90
+        self.back_limit = 150 #a default frame number for the robot when stuck ot go backward
         self.back_time = 0 # frame counter when the robot go backward
         #------------------added code------------------
 # Initialize our rover 

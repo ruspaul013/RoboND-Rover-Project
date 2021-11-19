@@ -29,6 +29,8 @@ warped = perspect_transform(image, source, destination)
 ```
 
 - In the laboratory, we learned to apply thresholds to detect the navigable terrain. In the images can appear obstacle or rocks. In this case we need to create 2 functions to detect them. We apply all the thresholds on the perspective image.
+- For the images with the yellow rock, we know that yellow is formed in RGB from red and green (255,255,0) so we choose that any pixel that have over 100 in red and green planes and the blue value lower than 70 to be white in our binary image
+- For the obstacles, we took the color_thresh function and we set that any pixel that have value below the same threshold like in color_thresh it is considerated an obstacle
 ```
 def rock_thresh(img, rgb_thresh=(100, 100, 70)):
     rock_select = np.zeros_like(img[:,:,0])
@@ -37,6 +39,8 @@ def rock_thresh(img, rgb_thresh=(100, 100, 70)):
                 & (img[:,:,2] < rgb_thresh[2])
     rock_select[rock_thresh_1] = 1
     return rock_select
+ ```
+ ```
 def obstacle_thresh(img, rgb_thresh=(140, 120, 150)):
     obstacle_select = np.zeros_like(img[:,:,0])
     below_thresh = (img[:,:,0] < rgb_thresh[0]) \
@@ -44,7 +48,8 @@ def obstacle_thresh(img, rgb_thresh=(140, 120, 150)):
                 & (img[:,:,2] < rgb_thresh[2])
     obstacle_select[below_thresh] = 1
     return obstacle_select
-    
+```  
+```
 navigable_terrain = color_thresh(warped)
 obstacle = obstacle_thresh(warped)
 rock = rock_thresh(warped)
@@ -85,38 +90,42 @@ Rover.worldmap[y_rock_world,x_rock_world,1] += 1
 ```
 Rover.nav_dists, Rover.nav_angles = to_polar_coords(x_rover,y_rover)
 ```
-**`decision.py`**
-In the forward mode, a step was added in case that the robot gets stuck in an obstacle, there will be a waiting period of 3 seconds (90 frames). If the stuck time variable is greater than the default value, we choose to go backwards with the robot. We know that the robot it is stuck, when the velocity of the robot is smaller than 0.075.
 
-We set a back_time frame counter to know how much time the robot needed to go backwards. When the value is over the limit, we stop the robot, set the throttle to positive value and reset the counters.
+**`decision.py`**
+
+- In the forward mode, a step was added in case that the robot gets stuck in an obstacle, there will be a waiting period of 3 seconds (90 frames). If the stuck time variable is greater than the default value, we choose to go backwards with the robot. We know that the robot it is stuck, when the velocity of the robot is smaller than 0.075.
+
+- We set a back_time frame counter to know how much time the robot needed to go backwards. When the value is over the limit (in case of going backwards is 5 seconds(150 frames)), we stop the robot, set the throttle to positive value and reset the counters.
 ```
 if ( Rover.vel <= 0.075 ):
         Rover.stuck_time += 1
     else:
         Rover.stuck_time = 0
-            if (Rover.stuck_time > Rover.limit):
+            if (Rover.stuck_time > Rover.sruck_limit):
                 Rover.throttle = -Rover.throttle_set
                 Rover.steer = -np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
                 if (Rover.vel < 0):
                     Rover.back_time += 1
-                    if (Rover.back_time > Rover.limit):
+                    if (Rover.back_time > Rover.back_limit):
                         Rover.vel = 0
                         Rover.throttle = Rover.throttle_set
                         Rover.stuck_time = 0
                         Rover.back_time = 0
 ```
-When the robot is near a rock, the robot will detect the sample, then stop and set the pick_up value to true. The robot will be able to collect the sample only if it will be in front of him when moving, in the rest of the cases, the rocks will be shown on the map with a white dot.
+- When the robot is near a rock, the robot will detect the sample, then stop and set the pick_up value to true. The robot will be able to collect the sample only if it will be in front of him when moving, in the rest of the cases, the rocks will be shown on the map with a white dot.
+This part is added in forward mode and also in stop mode.
 ```
 if Rover.near_sample and not Rover.picking_up:
     Rover.vel=0;
     Rover.brake = Rover.brake_set
     Rover.send_pickup = True
 ```
+
 A solution to be able to collect more rocks will be to make the robot go to the location of the rocks, when they will appear in the robot vision (the rocks will be shown with green color)
 
 **`drive_rover.py`**
 
-Added 3 new variable, stuck_time ( a variable for frame counter when the robot is stuck because of an object), limit (default value for a frame counter) and back_time (a variable for a frame counter when the robot goes backwards)
+Added 4 new variable, stuck_time ( a variable for frame counter when the robot is stuck because of an object), stuck_limit (default value for a frame counter), back_time (a variable for a frame counter when the robot goes backwards) and back_limit (default value for a frame counter).
 
 **`Rover_Project_Test_Notebook.ypynb`**
 

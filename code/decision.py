@@ -19,7 +19,7 @@ def decision_step(Rover):
                 # and velocity is below max, then throttle 
                 if Rover.vel < Rover.max_vel:
                     # Set throttle value to throttle setting
-                    Rover.throttle = Rover.throttle_set/2
+                    Rover.throttle = Rover.throttle_set*3/4
                 else: # Else coast
                     Rover.throttle = 0
                 Rover.brake = 0
@@ -40,12 +40,12 @@ def decision_step(Rover):
             else:
                 Rover.stuck_time = 0
             # when stuck, the robot will go backwards until back_time passed a limit,then we stop the robot, set the back_time and stuck_time to 0 
-            if (Rover.stuck_time > Rover.limit):
-                Rover.throttle = -Rover.throttle_set
+            if (Rover.stuck_time > Rover.stuck_limit):
+                Rover.throttle = -Rover.throttle_set*3/4
                 Rover.steer = -np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
                 if (Rover.vel < 0):
                     Rover.back_time += 1
-                    if (Rover.back_time > Rover.limit):
+                    if (Rover.back_time > Rover.back_limit):
                         Rover.vel = 0
                         Rover.throttle = Rover.throttle_set
                         Rover.stuck_time = 0
@@ -68,6 +68,11 @@ def decision_step(Rover):
             elif Rover.vel <= 0.2:
                 # Now we're stopped and we have vision data to see if there's a path forward
                 if len(Rover.nav_angles) < Rover.go_forward:
+                    # if a smaple is near, the robot stops and pick up the rock
+                    if Rover.near_sample and not Rover.picking_up:
+                        Rover.vel=0;
+                        Rover.brake = Rover.brake_set
+                        Rover.send_pickup = True
                     Rover.throttle = 0
                     # Release the brake to allow turning
                     Rover.brake = 0
@@ -76,6 +81,11 @@ def decision_step(Rover):
                 # If we're stopped but see sufficient navigable terrain in front then go!
                 if len(Rover.nav_angles) >= Rover.go_forward:
                     # Set throttle back to stored value
+                    # if a smaple is near, the robot stops and pick up the rock  
+                    if Rover.near_sample and not Rover.picking_up:
+                        Rover.vel=0;
+                        Rover.brake = Rover.brake_set
+                        Rover.send_pickup = True
                     Rover.throttle = Rover.throttle_set/2
                     # Release the brake
                     Rover.brake = 0
